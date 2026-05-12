@@ -30,3 +30,7 @@ Sơ đồ ERD
 
 <img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/679f621c-92df-4963-86ba-3f773b9b846f" />
 
+### Event 1: Đăng kí hợp đồng mới (vay tiền)
+
+Viết Store Procedure tiếp nhận hợp đồng: Lưu thông tin khách hàng, danh sách tài sản (kèm giá trị định giá), số tiền vay gốc và thiết lập 2 mốc Deadline1, Deadline2.
+
