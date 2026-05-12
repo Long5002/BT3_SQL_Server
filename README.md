@@ -47,7 +47,7 @@ CREATE TABLE HopDong (
     NgayLap DATETIME DEFAULT GETDATE(),
     Deadline1 DATE NOT NULL,           -- Mốc thời gian chuyển từ lãi đơn sang lãi kép
     SoTienGoc DECIMAL(18, 2) NOT NULL,  -- Số tiền vay ban đầu
-    TrangThai NVARCHAR(50) DEFAULT 'Đang vay', 
+    TrangThai NVARCHAR(50) DEFAULT N'Đang vay', 
     FOREIGN KEY (MaKH) REFERENCES KhachHang(MaKH) ON DELETE CASCADE
 );
 
@@ -58,7 +58,7 @@ CREATE TABLE TaiSan (
     TenTaiSan NVARCHAR(255) NOT NULL,
     GiaTriUocTinh DECIMAL(18, 2),       -- Giá trị để so sánh khi trả hàng
     MoTa NVARCHAR(500),
-    TrangThai NVARCHAR(50) DEFAULT 'Đang cầm cố',
+    TrangThai NVARCHAR(50) DEFAULT N'Đang cầm cố',
     NgayCapNhat DATETIME DEFAULT GETDATE(),
     FOREIGN KEY (MaHD) REFERENCES HopDong(MaHD) ON DELETE CASCADE
 );
@@ -93,8 +93,58 @@ Thêm Deadline 2 vào bảng HopDong:
 ```
 Use QuanLyCamDo_K235480106047;
 Go
-ALTER TABLE HopDong ADD [Deadline 2] DATE NOT NULL;
+ALTER TABLE HopDong ADD [Deadline2] DATE NOT NULL;
 ```
 
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/5649280e-a443-4fcd-b831-f84a9761f54f" />
+
+Viết Store Procedure:
+
+```
+CREATE TYPE Table_DanhSachTaiSan AS TABLE (
+    TenTaiSan NVARCHAR(255),
+    GiaTriUocTinh DECIMAL(18, 2),
+    MoTa NVARCHAR(500)
+);
+GO
+
+CREATE PROCEDURE sp_TiepNhanHopDong
+    @MaKH INT,
+    @SoTienGoc DECIMAL(18, 2),
+    @Deadline1 DATE,
+    @Deadline2 DATE,
+    @DSTaiSan Table_DanhSachTaiSan READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    BEGIN TRY
+        -- 1. Lưu thông tin hợp đồng
+        INSERT INTO HopDong (MaKH, SoTienGoc, Deadline1, Deadline2, TrangThai)
+        VALUES (@MaKH, @SoTienGoc, @Deadline1, @Deadline2, N'Đang vay');
+
+        DECLARE @MaHD_Moi INT = SCOPE_IDENTITY();
+
+        -- 2. Lưu danh sách tài sản
+        INSERT INTO TaiSan (MaHD, TenTaiSan, GiaTriUocTinh, MoTa)
+        SELECT @MaHD_Moi, TenTaiSan, GiaTriUocTinh, MoTa FROM @DSTaiSan;
+
+        -- 3. Ghi Log khởi tạo
+        INSERT INTO LogBienDong (MaHD, LoaiBienDong, SoTienThayDoi, DuNoHienTai, GhiChu)
+        VALUES (@MaHD_Moi, N'Mở hợp đồng', @SoTienGoc, @SoTienGoc, N'Bắt đầu hợp đồng vay');
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+```
+
+<img width="1366" height="768" alt="image" src="https://github.com/user-attachments/assets/8784aa19-6158-457b-a813-e0b37db397d5" />
+
+Test Event 1:
 
 
